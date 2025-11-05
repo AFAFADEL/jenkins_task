@@ -27,7 +27,7 @@ pipeline {
 
         stage('Build Appwith Maven') {
             steps {
-                dir("${APP_PATH}") {
+                dir("${APP_PATH}/app") {
                     sh 'mvn clean package'
                 }
             }
