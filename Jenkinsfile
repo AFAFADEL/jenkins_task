@@ -17,7 +17,7 @@ pipeline {
 
         stage('Run Unit Tests') {
             steps {
-                dir("${APP_PATH}/app") {
+                dir("${APP_PATH}") {
                     sh 'echo "Running unit tests..."'
                     // مثال لو عندك tests فعليًا
                     // sh 'pytest tests/'
