@@ -33,6 +33,18 @@ pipeline {
                 sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
             }
         }
+        stage('Test Docker Login') {
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh '''
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            docker info
+            '''
+        }
+    }
+}
+
+        
 
         stage('Push Docker Image to DockerHub') {
             steps {
