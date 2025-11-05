@@ -2,47 +2,41 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')   // اسم الـ credentials في Jenkins
+        // إعداد المتغيرات العامة
         DOCKER_IMAGE = "lenaadel/jenkins-app"
         GIT_REPO = "https://github.com/AFAFADEL/jenkins_task.git"
-        APP_PATH = "lab30_jenk/Jenkins_App"
     }
 
     stages {
+
         stage('Clone Repository') {
             steps {
+                echo "🔹 Cloning repository..."
                 git branch: 'main', url: "${GIT_REPO}"
+
+                // للتأكد من وجود pom.xml
+                sh 'echo "--- Project structure ---"'
+                sh 'ls -R'
             }
         }
 
-        stage('Run Unit Tests') {
+        stage('Build with Maven') {
             steps {
-                dir("${APP_PATH}") {
-                    sh 'echo "Running unit tests..."'
-                    // مثال لو عندك tests فعليًا
-                    // sh 'pytest tests/'
-                }
-            }
-        }
-
-        stage('Build Appwith Maven') {
-            steps {
-                dir("${APP_PATH}") {
-                    sh 'mvn clean package'
-                }
+                echo "🔹 Building project with Maven..."
+                sh 'mvn clean package'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                dir("${APP_PATH}") {
-                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
-                }
+                echo "🔹 Building Docker image..."
+                sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Push Docker Image to DockerHub') {
             steps {
+                echo "🔹 Pushing image to DockerHub..."
                 withCredentials([usernamePassword(credentialsId: 'DockerHub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
                     sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
@@ -50,41 +44,35 @@ pipeline {
             }
         }
 
-        stage('Delete Local Image') {
-            steps {
-                sh "docker rmi ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
-            }
-        }
-
         stage('Update Deployment File') {
             steps {
-                dir("${APP_PATH}") {
-                    sh """
-                    sed -i 's|image: .*|image: ${DOCKER_IMAGE}:${BUILD_NUMBER}|g' deployment.yaml
-                    cat deployment.yaml
-                    """
-                }
+                echo "🔹 Updating deployment file with new image..."
+                sh """
+                sed -i 's|image: .*|image: ${DOCKER_IMAGE}:${BUILD_NUMBER}|g' deployment.yaml
+                cat deployment.yaml
+                """
             }
         }
 
-        stage('Deploy to K8s') {
+        stage('Deploy to Kubernetes') {
             steps {
-                dir("${APP_PATH}") {
-                    sh 'kubectl apply -f deployment.yaml --kubeconfig=/var/lib/jenkins/config'
-                }
+                echo "🔹 Deploying to Kubernetes..."
+                sh 'kubectl apply -f deployment.yaml --kubeconfig=/var/lib/jenkins/config'
             }
         }
     }
 
     post {
-        always {
-            echo 'Pipeline finished.'
-        }
         success {
-            echo 'Deployment successful!'
+            echo "✅ Deployment successful!"
         }
         failure {
-            echo 'Pipeline failed!'
+            echo "❌ Pipeline failed. Check logs above."
+        }
+        always {
+            echo "📦 Pipeline finished."
         }
     }
 }
+
+
