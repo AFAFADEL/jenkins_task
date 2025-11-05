@@ -25,10 +25,10 @@ pipeline {
             }
         }
 
-        stage('Build App') {
+        stage('Build Appwith Maven') {
             steps {
                 dir("${APP_PATH}") {
-                    sh 'echo "Building app..."'
+                    sh 'mvn clean package'
                 }
             }
         }
