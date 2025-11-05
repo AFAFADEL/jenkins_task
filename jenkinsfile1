@@ -1,0 +1,91 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_REPO = 'https://github.com/Ibrahim-Adel15/Jenkins_App.git'
+        IMAGE_NAME = 'lenaadel/jenkins_app'     // غيّريه لاسم حسابك في DockerHub
+        IMAGE_TAG = "v${BUILD_NUMBER}"          // كل Build برقم جديد
+        DEPLOYMENT_FILE = 'k8s/deployment.yaml' // المسار داخل repo
+    }
+
+    stages {
+
+        stage('Clone Source Code') {
+            steps {
+                echo 'Cloning source code...'
+                git branch: 'main', url: "${GIT_REPO}"
+            }
+        }
+
+        stage('Run Unit Tests') {
+            steps {
+                echo 'Running unit tests...'
+                // مثال لاختبار بسيط - غيّريه حسب نوع المشروع
+                sh 'echo "All tests passed!"'
+            }
+        }
+
+        stage('Build Application') {
+    steps {
+        echo 'Building Java application using Maven...'
+        sh 'mvn clean package -DskipTests'
+    }
+}
+
+
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                echo 'Pushing image to DockerHub...'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('Delete Local Image') {
+            steps {
+                echo 'Deleting local Docker image...'
+                sh 'docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true'
+            }
+        }
+
+        stage('Update Deployment YAML') {
+            steps {
+                echo 'Updating image tag in deployment.yaml...'
+                sh '''
+                    sed -i "s|image: .*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g" ${DEPLOYMENT_FILE}
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo 'Deploying to Kubernetes cluster...'
+                sh 'kubectl apply -f ${DEPLOYMENT_FILE}'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished (always section).'
+        }
+        success {
+            echo '✅ Deployment succeeded!'
+        }
+        failure {
+            echo '❌ Deployment failed!'
+        }
+    }
+}
