@@ -17,7 +17,7 @@ pipeline {
 
         stage('Run Unit Tests') {
             steps {
-                dir("${APP_PATH}/app") {
+                dir("${APP_PATH}") {
                     sh 'echo "Running unit tests..."'
                     // مثال لو عندك tests فعليًا
                     // sh 'pytest tests/'
@@ -27,7 +27,7 @@ pipeline {
 
         stage('Build Appwith Maven') {
             steps {
-                dir("${APP_PATH}/app") {
+                dir("${APP_PATH}") {
                     sh 'mvn clean package'
                 }
             }
@@ -35,7 +35,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                dir("${APP_PATH}/app") {
+                dir("${APP_PATH}") {
                     sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
                 }
             }
