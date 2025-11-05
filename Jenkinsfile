@@ -5,7 +5,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')   // اسم الـ credentials في Jenkins
         DOCKER_IMAGE = "lenaadel/jenkins-app"
         GIT_REPO = "https://github.com/AFAFADEL/jenkins_task.git"
-        APP_PATH = "."
+        APP_PATH = "jenkins_task"
     }
 
     stages {
